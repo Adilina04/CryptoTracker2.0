@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,9 @@ import {
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, FONTS, AUTH_ERRORS } from "../../../utils/constants";
+import { debugStorage } from "../../../utils/debugUtils";
 
 const RegisterScreen: React.FC = () => {
   const router = useRouter();
@@ -21,6 +24,10 @@ const RegisterScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    debugStorage.logStorageContent();
+  }, []);
+
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -28,22 +35,22 @@ const RegisterScreen: React.FC = () => {
 
   const handleRegister = async () => {
     if (!email || !password || !confirmPassword) {
-      setError("Tous les champs sont requis");
+      setError(AUTH_ERRORS.FIELDS_REQUIRED);
       return;
     }
 
     if (!validateEmail(email)) {
-      setError("Format d'email invalide");
+      setError(AUTH_ERRORS.INVALID_EMAIL);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Les mots de passe ne correspondent pas");
+      setError(AUTH_ERRORS.PASSWORDS_NOT_MATCH);
       return;
     }
 
     if (password.length < 6) {
-      setError("Le mot de passe doit contenir au moins 6 caractères");
+      setError(AUTH_ERRORS.PASSWORD_TOO_SHORT);
       return;
     }
 
@@ -58,7 +65,7 @@ const RegisterScreen: React.FC = () => {
         (user: { email: string }) => user.email === email
       );
       if (userExists) {
-        setError("Cet email est déjà utilisé");
+        setError(AUTH_ERRORS.EMAIL_EXISTS);
         return;
       }
 
@@ -70,12 +77,11 @@ const RegisterScreen: React.FC = () => {
 
       const updatedUsers = [...parsedUsers, newUser];
       await AsyncStorage.setItem("users", JSON.stringify(updatedUsers));
-
       await AsyncStorage.setItem("currentUser", JSON.stringify(newUser));
 
-      router.push("../screens/HomeScreen");
+      router.push("/screens/main/HomeScreen");
     } catch (err) {
-      setError("Une erreur est survenue");
+      setError(AUTH_ERRORS.GENERIC_ERROR);
       console.error(err);
     } finally {
       setLoading(false);
@@ -92,36 +98,46 @@ const RegisterScreen: React.FC = () => {
           contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.title}>Inscription</Text>
+          <Text style={styles.title}>CryptoTracker</Text>
+          <Text style={styles.subtitle}>Create Your Account</Text>
 
           <View style={styles.form}>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              placeholderTextColor="#666"
-            />
+            <View style={styles.inputContainer}>
+              <Ionicons name="mail-outline" size={20} color={COLORS.GRAY} />
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                placeholderTextColor={COLORS.GRAY}
+              />
+            </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Mot de passe"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              placeholderTextColor="#666"
-            />
+            <View style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={20} color={COLORS.GRAY} />
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                placeholderTextColor={COLORS.GRAY}
+              />
+            </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Confirmer le mot de passe"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              placeholderTextColor="#666"
-            />
+            <View style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={20} color={COLORS.GRAY} />
+              <TextInput
+                style={styles.input}
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry
+                placeholderTextColor={COLORS.GRAY}
+              />
+            </View>
 
             {error && <Text style={styles.errorText}>{error}</Text>}
 
@@ -131,17 +147,17 @@ const RegisterScreen: React.FC = () => {
               disabled={loading}
             >
               <Text style={styles.buttonText}>
-                {loading ? "Chargement..." : "S'inscrire"}
+                {loading ? "Creating Account..." : "Sign Up"}
               </Text>
             </TouchableOpacity>
 
             <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Déjà un compte ? </Text>
+              <Text style={styles.loginText}>Already have an account? </Text>
               <TouchableOpacity
-                onPress={() => router.push("./screens/auth/LoginScreen")}
+                onPress={() => router.push("/screens/auth/LoginScreen")}
                 disabled={loading}
               >
-                <Text style={styles.loginLink}>Se connecter</Text>
+                <Text style={styles.loginLink}>Login</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -154,7 +170,7 @@ const RegisterScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.BACKGROUND,
   },
   container: {
     flex: 1,
@@ -165,43 +181,59 @@ const styles = StyleSheet.create({
     paddingTop: 50,
   },
   title: {
+    fontFamily: FONTS.BOLD,
     fontSize: 32,
-    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 8,
+    color: COLORS.PRIMARY,
+  },
+  subtitle: {
+    fontFamily: FONTS.REGULAR,
+    fontSize: 16,
     textAlign: "center",
     marginBottom: 40,
-    color: "#2196F3",
+    color: COLORS.GRAY,
   },
   form: {
     width: "100%",
   },
-  input: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.WHITE,
+    borderRadius: 12,
     padding: 15,
     marginBottom: 15,
-    fontSize: 16,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: COLORS.BORDER,
+  },
+  input: {
+    flex: 1,
+    marginLeft: 10,
+    fontFamily: FONTS.REGULAR,
+    fontSize: 16,
+    color: COLORS.TEXT,
   },
   button: {
-    backgroundColor: "#2196F3",
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: COLORS.PRIMARY,
+    padding: 18,
+    borderRadius: 12,
     alignItems: "center",
     marginTop: 10,
   },
   buttonDisabled: {
-    backgroundColor: "#89CFF0",
+    backgroundColor: COLORS.SECONDARY,
   },
   buttonText: {
-    color: "#fff",
+    color: COLORS.WHITE,
     fontSize: 16,
-    fontWeight: "bold",
+    fontFamily: FONTS.BOLD,
   },
   errorText: {
-    color: "#ff0000",
+    color: COLORS.ERROR,
     textAlign: "center",
     marginBottom: 10,
+    fontFamily: FONTS.REGULAR,
   },
   loginContainer: {
     flexDirection: "row",
@@ -209,14 +241,13 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   loginText: {
-    color: "#666",
-    fontSize: 14,
+    color: COLORS.GRAY,
+    fontFamily: FONTS.REGULAR,
   },
   loginLink: {
-    color: "#2196F3",
-    fontWeight: "bold",
-    fontSize: 14,
-  },
+    color: COLORS.PRIMARY,
+    fontFamily: FONTS.BOLD,
+  }
 });
 
 export default RegisterScreen;

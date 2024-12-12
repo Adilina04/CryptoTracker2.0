@@ -30,7 +30,7 @@ const AuthenticationScreen = () => {
       setIsBiometricEnabled(value);
 
       if (!value) {
-        router.push("../screens/HomeScreen");
+        router.push("/screens/main/HomeScreen");
       }
     } catch (error) {
       console.error(
@@ -45,14 +45,14 @@ const AuthenticationScreen = () => {
       const compatible = await LocalAuthentication.hasHardwareAsync();
       if (!compatible) {
         alert("Votre appareil ne supporte pas l'authentification biométrique");
-        router.push("../screens/HomeScreen");
+        router.push("/screens/main/HomeScreen");
         return;
       }
 
       const enrolled = await LocalAuthentication.isEnrolledAsync();
       if (!enrolled) {
         alert("Aucune donnée biométrique enregistrée sur cet appareil");
-        router.push("../screens/HomeScreen");
+        router.push("/screens/main/HomeScreen");
         return;
       }
 
@@ -64,7 +64,7 @@ const AuthenticationScreen = () => {
 
       if (result.success) {
         await AsyncStorage.setItem("biometricEnabled", "true");
-        router.push("../screens/HomeScreen");
+        router.push("/screens/main/HomeScreen");
       }
     } catch (error) {
       console.error("Erreur lors de l'authentification:", error);
