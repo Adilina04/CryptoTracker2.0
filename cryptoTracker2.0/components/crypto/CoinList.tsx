@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from "react-native";
 import { fetchCoins } from "@/utils/api"; 
-import { useRouter } from "expo-router";
+import { router, useRouter } from "expo-router";
 
 const CoinList: React.FC = () => {
   const [coins, setCoins] = useState<any[]>([]);
@@ -37,7 +37,7 @@ const CoinList: React.FC = () => {
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.coin}
-       //     onPress={() => router.push(`/screens/main/CryptoDetailScreen?id=${item.id}`)} // Navigue vers la page de détail
+          onPress={() => router.push(`/screens/main/CryptoDetailScreen?id=${item.id}`)} // Navigue vers la page de détail
           >
             <Text style={styles.name}>{item.name}</Text>
             <Text style={styles.price}>{item.current_price} USD</Text>
