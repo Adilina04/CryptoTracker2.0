@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,12 +8,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { auth } from "../../config/firebaseConfig";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { Ionicons } from '@expo/vector-icons';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import { COLORS, FONTS, AUTH_ERRORS } from "../../../utils/constants";
+import { authService } from "@/app/services/authService";
 import { useGoogleAuth } from "@/app/services/authService";
 
 const LoginScreen: React.FC = () => {
@@ -22,58 +26,191 @@ const LoginScreen: React.FC = () => {
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [appleAuthAvailable, setAppleAuthAvailable] = useState<boolean>(false);
   const { signInWithGoogle } = useGoogleAuth();
+
+  useEffect(() => {
+    checkAppleAuthAvailability();
+  }, []);
+
+  interface AuthError {
+    code?: string;
+    message?: string;
+  }
+
+  const checkAppleAuthAvailability = async () => {
+    try {
+      const available = await AppleAuthentication.isAvailableAsync();
+      setAppleAuthAvailable(available);
+    } catch (error) {
+      console.error('Error checking Apple auth availability:', error);
+      setAppleAuthAvailable(false);
+    }
+  };
+
+  const checkBiometricSupport = async () => {
+    try {
+      const compatible = await LocalAuthentication.hasHardwareAsync();
+      if (!compatible) return false;
+
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+      if (!enrolled) return false;
+
+      return true;
+    } catch (error: unknown) {
+      console.error('Error checking biometric support:', error);
+      return false;
+    }
+  };
+
+  const handleBiometricAuth = async () => {
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Verify your identity',
+        disableDeviceFallback: false,
+        cancelLabel: 'Cancel',
+      });
+      return result.success;
+    } catch (error: unknown) {
+      console.error('Error during biometric auth:', error);
+      return false;
+    }
+  };
+
+  const processBiometricSetup = async () => {
+    Alert.alert(
+      "Enable Biometric Authentication",
+      "Would you like to enable biometric authentication for enhanced security?",
+      [
+        {
+          text: "No Thanks",
+          onPress: async () => {
+            await AsyncStorage.setItem("biometricEnabled", "false");
+            router.push("/screens/main/HomeScreen");
+          },
+          style: "cancel"
+        },
+        {
+          text: "Enable",
+          onPress: async () => {
+            await AsyncStorage.setItem("biometricEnabled", "true");
+            const biometricSuccess = await handleBiometricAuth();
+            if (biometricSuccess) {
+              router.push("/screens/main/HomeScreen");
+            } else {
+              setError("Biometric verification failed");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleAuthSuccess = async (user: any) => {
+    try {
+      await AsyncStorage.setItem("currentUser", JSON.stringify(user));
+      const biometricSupported = await checkBiometricSupport();
+      
+      if (biometricSupported) {
+        const biometricEnabled = await AsyncStorage.getItem("biometricEnabled");
+        
+        if (biometricEnabled === null) {
+          await processBiometricSetup();
+        } else if (biometricEnabled === "true") {
+          const biometricSuccess = await handleBiometricAuth();
+          if (biometricSuccess) {
+            router.push("/screens/main/HomeScreen");
+          } else {
+            setError("Biometric verification failed");
+          }
+        } else {
+          router.push("/screens/main/HomeScreen");
+        }
+      } else {
+        router.push("/screens/main/HomeScreen");
+      }
+    } catch (error: unknown) {
+      console.error('Error in auth success:', error);
+      setError(AUTH_ERRORS.GENERIC_ERROR);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError("Tous les champs sont requis");
+      setError(AUTH_ERRORS.FIELDS_REQUIRED);
       return;
     }
-
+  
     try {
       setLoading(true);
       setError(null);
-
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = userCredential.user;
-
-      await AsyncStorage.setItem("currentUser", JSON.stringify(user));
-      const biometricEnabled = await AsyncStorage.getItem("biometricEnabled");
-
-      if (biometricEnabled === "true") {
-        router.push("./screens/auth/AuthenticationScreen");
+      const user = await authService.login(email, password);
+      
+      if (user) {
+        await handleAuthSuccess(user);
       } else {
-        router.push("./screens/main/HomeScreen");
+        setError(AUTH_ERRORS.INVALID_CREDENTIALS);
       }
-    } catch (err) {
-      console.error(err);
-      setError("Email ou mot de passe incorrect");
+    } catch (error: unknown) {
+      console.error(error);
+      setError(AUTH_ERRORS.GENERIC_ERROR);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleSocialLogin = async (provider: string) => {
     try {
       setLoading(true);
       setError(null);
+      
+      let user = null;
 
-      const user = await signInWithGoogle();
-      if (user) {
-        const biometricEnabled = await AsyncStorage.getItem("biometricEnabled");
-        if (biometricEnabled === "true") {
-          router.push("./screens/auth/AuthenticationScreen");
-        } else {
-          router.push("./screens/main/HomeScreen");
-        }
+      switch (provider) {
+        case "Google":
+          user = await signInWithGoogle();
+          break;
+        case "Apple":
+          if (Platform.OS === 'ios' && appleAuthAvailable) {
+            const credential = await AppleAuthentication.signInAsync({
+              requestedScopes: [
+                AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+                AppleAuthentication.AppleAuthenticationScope.EMAIL,
+              ],
+            });
+            
+            if (credential) {
+              user = {
+                id: credential.user,
+                email: credential.email,
+                name: `${credential.fullName?.givenName || ''} ${credential.fullName?.familyName || ''}`.trim(),
+                provider: 'apple'
+              };
+            }
+          } else {
+            setError("Apple Sign In is not available on this device");
+            return;
+          }
+          break;
+        case "X":
+          setError(AUTH_ERRORS.TWITTER_NOT_IMPLEMENTED);
+          return;
+        default:
+          setError(`${provider} login is not supported`);
+          return;
       }
-    } catch (err) {
-      console.error(err);
-      setError("Erreur lors de la connexion avec Google");
+
+      if (user) {
+        await handleAuthSuccess(user);
+      }
+    } catch (error: unknown) {
+      console.error(error);
+      const authError = error as AuthError;
+      if (authError.code === 'ERR_CANCELED') {
+        setError("Login was canceled");
+      } else {
+        setError(AUTH_ERRORS.GENERIC_ERROR);
+      }
     } finally {
       setLoading(false);
     }
@@ -90,26 +227,33 @@ const LoginScreen: React.FC = () => {
           keyboardShouldPersistTaps="handled"
         >
           <Text style={styles.title}>CryptoTracker</Text>
+          <Text style={styles.subtitle}>Sign in to continue</Text>
 
           <View style={styles.form}>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              placeholderTextColor="#666"
-            />
+            <View style={styles.inputContainer}>
+              <Ionicons name="mail-outline" size={20} color={COLORS.GRAY} />
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                placeholderTextColor={COLORS.GRAY}
+              />
+            </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Mot de passe"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              placeholderTextColor="#666"
-            />
+            <View style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={20} color={COLORS.GRAY} />
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                placeholderTextColor={COLORS.GRAY}
+              />
+            </View>
 
             {error && <Text style={styles.errorText}>{error}</Text>}
 
@@ -119,35 +263,55 @@ const LoginScreen: React.FC = () => {
               disabled={loading}
             >
               <Text style={styles.buttonText}>
-                {loading ? "Chargement..." : "Se connecter"}
+                {loading ? "Loading..." : "Login"}
               </Text>
             </TouchableOpacity>
 
-            <View style={styles.separator}>
-              <View style={styles.separatorLine} />
-              <Text style={styles.separatorText}>OU</Text>
-              <View style={styles.separatorLine} />
+            <View style={styles.socialSection}>
+              <View style={styles.separator}>
+                <View style={styles.separatorLine} />
+                <Text style={styles.separatorText}>OR</Text>
+                <View style={styles.separatorLine} />
+              </View>
+
+              <View style={styles.socialButtons}>
+                <TouchableOpacity
+                  style={[styles.socialButton, styles.googleButton]}
+                  onPress={() => handleSocialLogin("Google")}
+                  disabled={loading}
+                >
+                  <Ionicons name="logo-google" size={20} color={COLORS.TEXT} />
+                  <Text style={styles.socialButtonTextDark}>Google</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.socialButton, styles.xButton]}
+                  onPress={() => handleSocialLogin("X")}
+                  disabled={loading}
+                >
+                  <Text style={styles.socialButtonTextLight}>X</Text>
+                </TouchableOpacity>
+
+                {Platform.OS === 'ios' && appleAuthAvailable && (
+                  <TouchableOpacity
+                    style={[styles.socialButton, styles.appleButton]}
+                    onPress={() => handleSocialLogin("Apple")}
+                    disabled={loading}
+                  >
+                    <Ionicons name="logo-apple" size={20} color={COLORS.WHITE} />
+                    <Text style={styles.socialButtonTextLight}>Apple</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
 
-            <TouchableOpacity
-              style={[styles.googleButton, loading && styles.buttonDisabled]}
-              onPress={handleGoogleSignIn}
-              disabled={loading}
-            >
-              <View style={styles.googleButtonContent}>
-                <Text style={styles.googleButtonText}>
-                  Se connecter avec Google
-                </Text>
-              </View>
-            </TouchableOpacity>
-
             <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>Pas encore de compte ? </Text>
+              <Text style={styles.registerText}>Don't have an account? </Text>
               <TouchableOpacity
-                onPress={() => router.push("./screens/auth/RegisterScreen")}
+                onPress={() => router.push("/screens/auth/RegisterScreen")}
                 disabled={loading}
               >
-                <Text style={styles.registerLink}>S'inscrire</Text>
+                <Text style={styles.registerLink}>Sign Up</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -160,7 +324,7 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.BACKGROUND,
   },
   container: {
     flex: 1,
@@ -171,43 +335,62 @@ const styles = StyleSheet.create({
     paddingTop: 50,
   },
   title: {
+    fontFamily: FONTS.BOLD,
     fontSize: 32,
-    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 8,
+    color: COLORS.PRIMARY,
+  },
+  subtitle: {
+    fontFamily: FONTS.REGULAR,
+    fontSize: 16,
     textAlign: "center",
     marginBottom: 40,
-    color: "#2196F3",
+    color: COLORS.GRAY,
   },
   form: {
     width: "100%",
   },
-  input: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.WHITE,
+    borderRadius: 12,
     padding: 15,
     marginBottom: 15,
-    fontSize: 16,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: COLORS.BORDER,
+  },
+  input: {
+    flex: 1,
+    marginLeft: 10,
+    fontFamily: FONTS.REGULAR,
+    fontSize: 16,
+    color: COLORS.TEXT,
   },
   button: {
-    backgroundColor: "#2196F3",
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: COLORS.PRIMARY,
+    padding: 18,
+    borderRadius: 12,
     alignItems: "center",
     marginTop: 10,
   },
   buttonDisabled: {
-    backgroundColor: "#89CFF0",
+    backgroundColor: COLORS.SECONDARY,
   },
   buttonText: {
-    color: "#fff",
+    color: COLORS.WHITE,
     fontSize: 16,
-    fontWeight: "bold",
+    fontFamily: FONTS.BOLD,
   },
   errorText: {
-    color: "#ff0000",
+    color: COLORS.ERROR,
     textAlign: "center",
     marginBottom: 10,
+    fontFamily: FONTS.REGULAR,
+  },
+  socialSection: {
+    marginTop: 20,
   },
   separator: {
     flexDirection: "row",
@@ -217,31 +400,45 @@ const styles = StyleSheet.create({
   separatorLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#ddd",
+    backgroundColor: COLORS.BORDER,
   },
   separatorText: {
     marginHorizontal: 10,
-    color: "#666",
-    fontSize: 14,
+    color: COLORS.GRAY,
+    fontFamily: FONTS.REGULAR,
+  },
+  socialButtons: {
+    gap: 12,
+  },
+  socialButton: {
+    padding: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   googleButton: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 8,
-    marginTop: 10,
+    backgroundColor: COLORS.WHITE,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: COLORS.BORDER,
   },
-  googleButtonContent: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
+  xButton: {
+    backgroundColor: '#000000',
   },
-  googleButtonText: {
-    color: "#757575",
+  appleButton: {
+    backgroundColor: COLORS.TEXT,
+  },
+  socialButtonTextDark: {
+    color: COLORS.TEXT,
+    marginLeft: 10,
     fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
+    fontFamily: FONTS.BOLD,
+  },
+  socialButtonTextLight: {
+    color: COLORS.WHITE,
+    marginLeft: 10,
+    fontSize: 16,
+    fontFamily: FONTS.BOLD,
   },
   registerContainer: {
     flexDirection: "row",
@@ -249,13 +446,12 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   registerText: {
-    color: "#666",
-    fontSize: 14,
+    color: COLORS.GRAY,
+    fontFamily: FONTS.REGULAR,
   },
   registerLink: {
-    color: "#2196F3",
-    fontWeight: "bold",
-    fontSize: 14,
+    color: COLORS.PRIMARY,
+    fontFamily: FONTS.BOLD,
   },
 });
 
