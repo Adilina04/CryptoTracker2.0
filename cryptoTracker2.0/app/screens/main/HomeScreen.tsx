@@ -15,7 +15,7 @@ const HomeScreen: React.FC = () => {
         const data = await fetchCoins("usd");
         setCoins(data);
       } catch (err) {
-        setError("Impossible de récupérer les données.");
+        setError("Impossible de récupérer les donnéeeeeeeesss.");
       } finally {
         setLoading(false);
       }
