@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import axios from "axios";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 const CryptoDetailScreen: React.FC = () => {
   const { id } = useLocalSearchParams(); 
@@ -91,10 +91,9 @@ const CryptoDetailScreen: React.FC = () => {
           </Text>
         </View>
       </View>
-
-      <TouchableOpacity style={styles.button} onPress={() => console.log("Go back!")}>
-        <Text style={styles.buttonText}>Go Back</Text>
-      </TouchableOpacity>
+      <TouchableOpacity style={styles.button} onPress={() => router.push("/screens/main/HomeScreen")}>
+      <Text style={styles.buttonText}>Go Back</Text>
+    </TouchableOpacity>
     </View>
   );
 };
