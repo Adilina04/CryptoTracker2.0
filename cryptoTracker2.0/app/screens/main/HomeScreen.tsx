@@ -1,60 +1,64 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, TouchableOpacity } from "react-native";
-import { useRouter } from "expo-router";
-import { fetchCoins } from "@/utils/api";
+import React, { useEffect, useState } from "react"
+import { View, Text, FlatList, TouchableOpacity } from "react-native"
+import { useRouter } from "expo-router"
+import { fetchCoins } from "@/utils/api"
 
 const HomeScreen: React.FC = () => {
-  const [coins, setCoins] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-   const router = useRouter();
+	const [coins, setCoins] = useState<any[]>([])
+	const [loading, setLoading] = useState<boolean>(true)
+	const [error, setError] = useState<string | null>(null)
+	const router = useRouter()
 
-  useEffect(() => {
-    const loadCoins = async () => {
-      try {
-        const data = await fetchCoins("usd");
-        setCoins(data);
-      } catch (err) {
-        setError("Impossible de récupérer les données.");
-      } finally {
-        setLoading(false);
-      }
-    };
+	const loadCoins = async () => {
+		try {
+			const data = await fetchCoins("usd")
+			setCoins(data)
+		} catch (err) {
+			setError("Impossible de rï¿½cupï¿½rer les donnï¿½es.")
+		} finally {
+			setLoading(false)
+		}
+	}
 
-    loadCoins();
-  }, []);
+	useEffect(() => {
+		loadCoins()
+	}, [])
 
-  if (loading) {
-    return (
-      <View>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
+	if (loading) {
+		return (
+			<View>
+				<Text>Loading...</Text>
+			</View>
+		)
+	}
 
-  if (error) {
-    return (
-      <View>
-        <Text>{error}</Text>
-      </View>
-    );
-  }
+	if (error) {
+		return (
+			<View>
+				<Text>{error}</Text>
+			</View>
+		)
+	}
 
-  return (
-    <View>
-      <Text>Crypto List</Text>
-      <FlatList
-        data={coins}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-         <TouchableOpacity onPress={() => router.push(`/screens/main/CryptoDetailScreen?id=${item.id}`)}>
-           <Text>{item.name}</Text>
-            <Text>{item.current_price} USD</Text>
-          </TouchableOpacity>
-        )}
-      />
-    </View>
-  );
-};
+	return (
+		<View>
+			<Text>Crypto List</Text>
+			<FlatList
+				data={coins}
+				keyExtractor={(item) => item.id}
+				renderItem={({ item }) => (
+					<TouchableOpacity
+						onPress={() =>
+							router.push(`/screens/main/CryptoDetailScreen?id=${item.id}`)
+						}
+					>
+						<Text>{item.name}</Text>
+						<Text>{item.current_price} USD</Text>
+					</TouchableOpacity>
+				)}
+			/>
+		</View>
+	)
+}
 
-export default HomeScreen;
+export default HomeScreen

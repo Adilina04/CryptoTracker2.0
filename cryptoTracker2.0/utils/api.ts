@@ -1,3 +1,5 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 const API_KEY = process.env.API_KEY;
 
 export const fetchCoins = async (currency: string = 'usd') => {
@@ -17,6 +19,8 @@ export const fetchCoins = async (currency: string = 'usd') => {
    throw new Error(`Error: ${response.statusText}`);
   }
   const data = await response.json();
+  const jsonValue = JSON.stringify(data);
+  AsyncStorage.setItem('coins', jsonValue)
   return data;
  } catch (error) {
   console.error('Error fetching coins:', error);
