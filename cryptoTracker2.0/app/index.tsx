@@ -2,6 +2,7 @@ import CoinList from "@/components/crypto/CoinList";
 import { Text, View } from "react-native";
 import HomeScreen from "./screens/main/HomeScreen";
 import LoginScreen from "./screens/auth/LoginScreen";
+import CryptoDetailScreen from "./screens/main/CryptoDetailScreen";
 
 export default function Index() {
   return (
@@ -13,7 +14,7 @@ export default function Index() {
       }}
     >
       <Text>Edit app/index.tsx to edit this screen.</Text>
-      <LoginScreen/>
+      <CoinList/>
     </View>
   );
 }
