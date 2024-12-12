@@ -1,25 +1,19 @@
-import React, { useState, useEffect } from "react"
-import { Text, View, StyleSheet } from "react-native"
-import CoinSearchScreen from "@/app/screens/CoinSearchScreen"
+import { useEffect } from "react";
+import { Redirect, useRouter } from "expo-router";
+import { authService } from "@/app/services/authService";
 
 export default function Index() {
-	return (
-		<View style={styles.container}>
-			<CoinSearchScreen />
-		</View>
-	)
-}
+  const router = useRouter();
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 16,
-	},
-	title: {
-		marginBottom: 16,
-		fontSize: 18,
-		fontWeight: "bold",
-	},
-})
+  useEffect(() => {
+    const checkAuth = async () => {
+      const isLoggedIn = await authService.isLoggedIn();
+      if (isLoggedIn) {
+        router.push("/screens/main/HomeScreen");
+      }
+    };
+    checkAuth();
+  }, [router]);
+
+  return <Redirect href="/screens/auth/LoginScreen" />;
+}
