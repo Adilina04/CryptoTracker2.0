@@ -1,17 +1,26 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Google from "expo-auth-session/providers/google";
 import { router } from "expo-router";
+import { router } from "expo-router";
 
 export interface User {
   id: string;
   email: string;
   password?: string;
+  password?: string;
   createdAt: string;
+  provider?: "email" | "google";
   provider?: "email" | "google";
 }
 
 export const useGoogleAuth = () => {
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId:
+      "1096241045242-5bkm3juvc5dbio96qe72uhkn12subf8p.apps.googleusercontent.com",
+    androidClientId:
+      "1096241045242-bn5kdkgn171qm50ekibfnamuma24vhrl.apps.googleusercontent.com",
+    iosClientId:
+      "1096241045242-l9pqrp90poguibms4o1auntfs45lrie4.apps.googleusercontent.com",
     clientId:
       "1096241045242-5bkm3juvc5dbio96qe72uhkn12subf8p.apps.googleusercontent.com",
     androidClientId:
@@ -37,12 +46,15 @@ export const useGoogleAuth = () => {
 
         const googleUser: User = {
           id: userData.sub,
+          id: userData.sub,
           email: userData.email,
           createdAt: new Date().toISOString(),
+          provider: "google",
           provider: "google",
         };
 
         const users = await authService.getUsers();
+        const existingUser = users.find((u) => u.email === googleUser.email);
         const existingUser = users.find((u) => u.email === googleUser.email);
 
         if (!existingUser) {
@@ -104,6 +116,7 @@ export const authService = {
   async getCurrentUser(): Promise<User | null> {
     try {
       const currentUser = await AsyncStorage.getItem("currentUser");
+      const currentUser = await AsyncStorage.getItem("currentUser");
       return currentUser ? JSON.parse(currentUser) : null;
     } catch {
       return null;
@@ -124,6 +137,7 @@ export const authService = {
       await AsyncStorage.removeItem("currentUser");
       router.push("/screens/auth/LoginScreen");
     } catch (error) {
+      console.error("Logout error:", error);
       console.error("Logout error:", error);
       throw error;
     }

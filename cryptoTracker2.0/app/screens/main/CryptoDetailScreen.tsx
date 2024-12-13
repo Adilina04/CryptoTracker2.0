@@ -6,6 +6,7 @@ import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system";
 import { router, useLocalSearchParams } from "expo-router";
 import axios from "axios";
+import PaymentScreen from '@/components/PaymentScreen'
 
 const CryptoDetailScreen: React.FC = () => {
   const { id } = useLocalSearchParams();
@@ -122,27 +123,55 @@ const CryptoDetailScreen: React.FC = () => {
   }
 
   return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{coin?.name}</Text>
-          <Text style={styles.symbol}>{coin?.symbol.toUpperCase()}</Text>
-        </View>
+     
+    <View style={styles.container}>
+    <View style={styles.header}>
+      <Text style={styles.title}>{coin.name}</Text>
+      <Text style={styles.symbol}>{coin.symbol.toUpperCase()}</Text>
+    </View>
 
-        <View style={styles.detailsContainer}>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Current Price:</Text>
-            <Text style={styles.detailValue}>
-              ${coin?.market_data.current_price.usd.toLocaleString()}
-            </Text>
-          </View>
+    <View style={styles.detailsContainer}>
+      <View style={styles.detailItem}>
+        <Text style={styles.detailLabel}>Current Price:</Text>
+        <Text style={styles.detailValue}>
+          ${coin.market_data.current_price.usd.toLocaleString()}
+        </Text>
+      </View>
 
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Market Cap:</Text>
-            <Text style={styles.detailValue}>
-              ${coin?.market_data.market_cap.usd.toLocaleString()}
-            </Text>
-          </View>
-        </View>
+      <View style={styles.detailItem}>
+        <Text style={styles.detailLabel}>Market Cap:</Text>
+        <Text style={styles.detailValue}>
+          ${coin.market_data.market_cap.usd.toLocaleString()}
+        </Text>
+      </View>
+
+      <View style={styles.detailItem}>
+        <Text style={styles.detailLabel}>24h High:</Text>
+        <Text style={styles.detailValue}>
+          ${coin.market_data.high_24h.usd.toLocaleString()}
+        </Text>
+      </View>
+
+      <View style={styles.detailItem}>
+        <Text style={styles.detailLabel}>24h Low:</Text>
+        <Text style={styles.detailValue}>
+          ${coin.market_data.low_24h.usd.toLocaleString()}
+        </Text>
+      </View>
+
+      <View style={styles.detailItem}>
+        <Text style={styles.detailLabel}>Price Change (24h):</Text>
+        <Text
+          style={[
+            styles.detailValue,
+            { color: coin.market_data.price_change_percentage_24h >= 0 ? "green" : "red" },
+          ]}
+        >
+          {coin.market_data.price_change_percentage_24h.toFixed(2)}%
+        </Text>
+      </View>
+    </View>
+    <PaymentScreen/>
 
         <TouchableOpacity style={styles.button} onPress={loadContacts}>
           <Text style={styles.buttonText}>Load Contacts</Text>
