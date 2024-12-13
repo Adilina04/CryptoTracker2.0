@@ -123,7 +123,6 @@ const CryptoDetailScreen: React.FC = () => {
   }
 
   return (
-     
     <View style={styles.container}>
     <View style={styles.header}>
       <Text style={styles.title}>{coin.name}</Text>
