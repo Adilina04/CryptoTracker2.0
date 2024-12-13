@@ -1,20 +1,23 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Google from "expo-auth-session/providers/google";
-import { router } from 'expo-router';
+import { router } from "expo-router";
 
 export interface User {
   id: string;
   email: string;
-  password?: string; 
+  password?: string;
   createdAt: string;
-  provider?: 'email' | 'google'; 
+  provider?: "email" | "google";
 }
 
 export const useGoogleAuth = () => {
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: "1096241045242-5bkm3juvc5dbio96qe72uhkn12subf8p.apps.googleusercontent.com",
-    androidClientId: "1096241045242-bn5kdkgn171qm50ekibfnamuma24vhrl.apps.googleusercontent.com",
-    iosClientId: "1096241045242-l9pqrp90poguibms4o1auntfs45lrie4.apps.googleusercontent.com",
+    clientId:
+      "1096241045242-5bkm3juvc5dbio96qe72uhkn12subf8p.apps.googleusercontent.com",
+    androidClientId:
+      "1096241045242-bn5kdkgn171qm50ekibfnamuma24vhrl.apps.googleusercontent.com",
+    iosClientId:
+      "1096241045242-l9pqrp90poguibms4o1auntfs45lrie4.apps.googleusercontent.com",
   });
 
   const signInWithGoogle = async () => {
@@ -23,29 +26,38 @@ export const useGoogleAuth = () => {
 
       if (result.type === "success") {
         const { id_token } = result.params;
-        
-        const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: `Bearer ${id_token}` }
-        });
-        
+
+        const response = await fetch(
+          "https://www.googleapis.com/oauth2/v3/userinfo",
+          {
+            headers: { Authorization: `Bearer ${id_token}` },
+          },
+        );
+
         const userData = await response.json();
 
         const googleUser: User = {
-          id: userData.sub, 
+          id: userData.sub,
           email: userData.email,
           createdAt: new Date().toISOString(),
-          provider: 'google'
+          provider: "google",
         };
 
         const users = await authService.getUsers();
-        const existingUser = users.find(u => u.email === googleUser.email);
+        const existingUser = users.find((u) => u.email === googleUser.email);
 
         if (!existingUser) {
-          await AsyncStorage.setItem('users', JSON.stringify([...users, googleUser]));
+          await AsyncStorage.setItem(
+            "users",
+            JSON.stringify([...users, googleUser]),
+          );
         }
 
-        await AsyncStorage.setItem('currentUser', JSON.stringify(existingUser || googleUser));
-        
+        await AsyncStorage.setItem(
+          "currentUser",
+          JSON.stringify(existingUser || googleUser),
+        );
+
         // Redirection après connexion Google
         const biometricEnabled = await AsyncStorage.getItem("biometricEnabled");
         if (biometricEnabled === "true") {
@@ -68,7 +80,7 @@ export const useGoogleAuth = () => {
 
 export const authService = {
   async getUsers(): Promise<User[]> {
-    const users = await AsyncStorage.getItem('users');
+    const users = await AsyncStorage.getItem("users");
     return users ? JSON.parse(users) : [];
   },
 
@@ -76,11 +88,14 @@ export const authService = {
     try {
       const users = await this.getUsers();
       const user = users.find(
-        (u) => u.email === email && u.password === password && u.provider !== 'google'
+        (u) =>
+          u.email === email &&
+          u.password === password &&
+          u.provider !== "google",
       );
-      
+
       if (user) {
-        await AsyncStorage.setItem('currentUser', JSON.stringify(user));
+        await AsyncStorage.setItem("currentUser", JSON.stringify(user));
         const biometricEnabled = await AsyncStorage.getItem("biometricEnabled");
         if (biometricEnabled === "true") {
           router.replace("/screens/auth/AuthenticationScreen");
@@ -89,9 +104,9 @@ export const authService = {
         }
         return user;
       }
-      throw new Error('Invalid email or password');
+      throw new Error("Invalid email or password");
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       throw error;
     }
   },
@@ -99,10 +114,10 @@ export const authService = {
   async register(email: string, password: string) {
     try {
       const users = await this.getUsers();
-      
+
       const userExists = users.some((user) => user.email === email);
       if (userExists) {
-        throw new Error('Email already exists');
+        throw new Error("Email already exists");
       }
 
       const newUser: User = {
@@ -110,26 +125,26 @@ export const authService = {
         email,
         password,
         createdAt: new Date().toISOString(),
-        provider: 'email'
+        provider: "email",
       };
 
-      await AsyncStorage.setItem('users', JSON.stringify([...users, newUser]));
-      await AsyncStorage.setItem('currentUser', JSON.stringify(newUser));
+      await AsyncStorage.setItem("users", JSON.stringify([...users, newUser]));
+      await AsyncStorage.setItem("currentUser", JSON.stringify(newUser));
       router.replace("/screens/main/HomeScreen");
-      
+
       return newUser;
     } catch (error) {
-      console.error('Register error:', error);
+      console.error("Register error:", error);
       throw error;
     }
   },
 
   async getCurrentUser(): Promise<User | null> {
     try {
-      const currentUser = await AsyncStorage.getItem('currentUser');
+      const currentUser = await AsyncStorage.getItem("currentUser");
       return currentUser ? JSON.parse(currentUser) : null;
     } catch (error) {
-      console.error('Get current user error:', error);
+      console.error("Get current user error:", error);
       return null;
     }
   },
@@ -145,20 +160,20 @@ export const authService = {
 
   async logout() {
     try {
-      await AsyncStorage.removeItem('currentUser');
+      await AsyncStorage.removeItem("currentUser");
       router.replace("/screens/auth/LoginScreen");
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
       throw error;
     }
   },
 
   async clearAllData() {
     try {
-      await AsyncStorage.multiRemove(['users', 'currentUser']);
+      await AsyncStorage.multiRemove(["users", "currentUser"]);
     } catch (error) {
-      console.error('Clear data error:', error);
+      console.error("Clear data error:", error);
       throw error;
     }
-  }
+  },
 };

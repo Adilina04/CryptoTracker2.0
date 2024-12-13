@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import axios from "axios";
 import { router, useLocalSearchParams } from "expo-router";
+import PaymentScreen from '@/components/PaymentScreen'
 
 const CryptoDetailScreen: React.FC = () => {
   const { id } = useLocalSearchParams(); 
