@@ -46,7 +46,6 @@ export const useGoogleAuth = () => {
 
         await AsyncStorage.setItem('currentUser', JSON.stringify(existingUser || googleUser));
         
-        // Redirection après connexion Google
         const biometricEnabled = await AsyncStorage.getItem("biometricEnabled");
         if (biometricEnabled === "true") {
           router.replace("/screens/auth/AuthenticationScreen");
