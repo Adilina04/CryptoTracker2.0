@@ -13,9 +13,9 @@ import {
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from '@expo/vector-icons';
-import * as LocalAuthentication from 'expo-local-authentication';
-import * as AppleAuthentication from 'expo-apple-authentication';
+import { Ionicons } from "@expo/vector-icons";
+import * as LocalAuthentication from "expo-local-authentication";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { COLORS, FONTS, AUTH_ERRORS } from "../../../utils/constants";
 import { authService } from "@/app/services/authService";
 import { useGoogleAuth } from "@/app/services/authService";
@@ -43,7 +43,7 @@ const LoginScreen: React.FC = () => {
       const available = await AppleAuthentication.isAvailableAsync();
       setAppleAuthAvailable(available);
     } catch (error) {
-      console.error('Error checking Apple auth availability:', error);
+      console.error("Error checking Apple auth availability:", error);
       setAppleAuthAvailable(false);
     }
   };
@@ -58,7 +58,7 @@ const LoginScreen: React.FC = () => {
 
       return true;
     } catch (error: unknown) {
-      console.error('Error checking biometric support:', error);
+      console.error("Error checking biometric support:", error);
       return false;
     }
   };
@@ -66,13 +66,13 @@ const LoginScreen: React.FC = () => {
   const handleBiometricAuth = async () => {
     try {
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Verify your identity',
+        promptMessage: "Verify your identity",
         disableDeviceFallback: false,
-        cancelLabel: 'Cancel',
+        cancelLabel: "Cancel",
       });
       return result.success;
     } catch (error: unknown) {
-      console.error('Error during biometric auth:', error);
+      console.error("Error during biometric auth:", error);
       return false;
     }
   };
@@ -88,7 +88,7 @@ const LoginScreen: React.FC = () => {
             await AsyncStorage.setItem("biometricEnabled", "false");
             router.push("/screens/main/HomeScreen");
           },
-          style: "cancel"
+          style: "cancel",
         },
         {
           text: "Enable",
@@ -100,8 +100,8 @@ const LoginScreen: React.FC = () => {
             } else {
               setError("Biometric verification failed");
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -110,10 +110,10 @@ const LoginScreen: React.FC = () => {
     try {
       await AsyncStorage.setItem("currentUser", JSON.stringify(user));
       const biometricSupported = await checkBiometricSupport();
-      
+
       if (biometricSupported) {
         const biometricEnabled = await AsyncStorage.getItem("biometricEnabled");
-        
+
         if (biometricEnabled === null) {
           await processBiometricSetup();
         } else if (biometricEnabled === "true") {
@@ -130,7 +130,7 @@ const LoginScreen: React.FC = () => {
         router.push("/screens/main/HomeScreen");
       }
     } catch (error: unknown) {
-      console.error('Error in auth success:', error);
+      console.error("Error in auth success:", error);
       setError(AUTH_ERRORS.GENERIC_ERROR);
     }
   };
@@ -140,12 +140,12 @@ const LoginScreen: React.FC = () => {
       setError(AUTH_ERRORS.FIELDS_REQUIRED);
       return;
     }
-  
+
     try {
       setLoading(true);
       setError(null);
       const user = await authService.login(email, password);
-      
+
       if (user) {
         await handleAuthSuccess(user);
       } else {
@@ -163,7 +163,7 @@ const LoginScreen: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       let user = null;
 
       switch (provider) {
@@ -171,20 +171,20 @@ const LoginScreen: React.FC = () => {
           user = await signInWithGoogle();
           break;
         case "Apple":
-          if (Platform.OS === 'ios' && appleAuthAvailable) {
+          if (appleAuthAvailable) {
             const credential = await AppleAuthentication.signInAsync({
               requestedScopes: [
                 AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
                 AppleAuthentication.AppleAuthenticationScope.EMAIL,
               ],
             });
-            
+
             if (credential) {
               user = {
                 id: credential.user,
                 email: credential.email,
-                name: `${credential.fullName?.givenName || ''} ${credential.fullName?.familyName || ''}`.trim(),
-                provider: 'apple'
+                name: `${credential.fullName?.givenName || ""} ${credential.fullName?.familyName || ""}`.trim(),
+                provider: "apple",
               };
             }
           } else {
@@ -206,7 +206,7 @@ const LoginScreen: React.FC = () => {
     } catch (error: unknown) {
       console.error(error);
       const authError = error as AuthError;
-      if (authError.code === 'ERR_CANCELED') {
+      if (authError.code === "ERR_CANCELED") {
         setError("Login was canceled");
       } else {
         setError(AUTH_ERRORS.GENERIC_ERROR);
@@ -244,7 +244,11 @@ const LoginScreen: React.FC = () => {
             </View>
 
             <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color={COLORS.GRAY} />
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={COLORS.GRAY}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="Password"
@@ -292,13 +296,17 @@ const LoginScreen: React.FC = () => {
                   <Text style={styles.socialButtonTextLight}>X</Text>
                 </TouchableOpacity>
 
-                {Platform.OS === 'ios' && appleAuthAvailable && (
+                {Platform.OS === "ios" && appleAuthAvailable && (
                   <TouchableOpacity
                     style={[styles.socialButton, styles.appleButton]}
                     onPress={() => handleSocialLogin("Apple")}
                     disabled={loading}
                   >
-                    <Ionicons name="logo-apple" size={20} color={COLORS.WHITE} />
+                    <Ionicons
+                      name="logo-apple"
+                      size={20}
+                      color={COLORS.WHITE}
+                    />
                     <Text style={styles.socialButtonTextLight}>Apple</Text>
                   </TouchableOpacity>
                 )}
@@ -352,8 +360,8 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: COLORS.WHITE,
     borderRadius: 12,
     padding: 15,
@@ -413,9 +421,9 @@ const styles = StyleSheet.create({
   socialButton: {
     padding: 16,
     borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   googleButton: {
     backgroundColor: COLORS.WHITE,
@@ -423,7 +431,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.BORDER,
   },
   xButton: {
-    backgroundColor: '#000000',
+    backgroundColor: "#000000",
   },
   appleButton: {
     backgroundColor: COLORS.TEXT,
