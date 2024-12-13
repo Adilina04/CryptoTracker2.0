@@ -92,6 +92,7 @@ const CryptoDetailScreen: React.FC = () => {
           </Text>
         </View>
       </View>
+      <PaymentScreen/>
       <TouchableOpacity style={styles.button} onPress={() => router.push("/screens/main/HomeScreen")}>
       <Text style={styles.buttonText}>Go Back</Text>
     </TouchableOpacity>
